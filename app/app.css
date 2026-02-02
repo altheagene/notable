@@ -19,6 +19,9 @@ button{
   @apply cursor-pointer
 }
 
+.random{
+  color: #0000003e
+}
 .stack:hover{
   cursor: pointer;
   /* color: #27262641 */
@@ -36,7 +39,7 @@ button{
   scrollbar-width: none;
 }
 
-.credentials-div input{
+.credentials-div input[type='text'], .credentials-div input[type='date'], .credentials-div input[type='password']{
   @apply w-[100%] h-[40px] block border-1 rounded-[5px] border-[#272626] p-[0.5rem]
 }
 
@@ -48,6 +51,40 @@ button{
 .transform-3d{
   transform-style: preserve-3d;
 }
+
+.register-panel{
+  @apply overflow-y-auto
+}
 .front, .back{
   @apply p-[1.5rem] flex justify-center items-center p-[2rem] text-center 
+}
+
+.card{
+  @apply p-[1.5rem] h-full w-full flex justify-center items-center p-[2rem] text-center backface-hidden cursor-pointer absolute min-w-full min-h-full bg-[#f4f4f4] border-[1rem]  border-[#822b8d80] rounded-[10px] text-lg font-medium
+}
+
+.my-shadow{
+  box-shadow: 4px 4px #272626;
+}
+
+
+/* QUIZ NAVBUTTONS */
+
+.quiz-nav-btn{
+  @apply 
+                            h-[50px] rounded-[25px] w-[70px]
+                           hover:text-white
+                            font-bold p-[0.3rem] text-xl
+}
+/* =======================ANIMATION CLASSES======================== */
+
+.slide-out-right{
+  animation: slideOutRight 0.4s ease-in-out;
+}
+
+@keyframes slideOutRight{
+  to{
+    transform: translateX(100%);
+    opacity: 0;
+  }
 }

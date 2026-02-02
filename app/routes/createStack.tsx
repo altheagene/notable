@@ -1,19 +1,64 @@
-
+import type { Route } from "./+types/home";
 import { useState, useEffect, useRef } from "react";
-import {motion, AnimatePresence} from 'framer-motion'
-import { index } from "@react-router/dev/routes";
+import {motion, AnimatePresence, } from 'framer-motion'
+import { Link, useLoaderData } from "react-router";
+import {API_URL} from '../config.js'
+
+
+export async function loader({params, request} : Route.LoaderArgs){
+    const {getUserId} = await import('../sessions.server')
+    const user_id = await getUserId(request)
+    const stack_id = params.stackid
+
+    const response = await fetch(`${API_URL}/getstack`,
+        {
+            method: 'POST',
+            headers: {
+                'Content-Type' : 'application/json'
+            },
+            body: JSON.stringify({stack_id: stack_id, user_id: user_id})
+        }
+    )
+
+    const jsonified = await response.json()
+    const myStackInfo = {
+        stack_title : jsonified[0].stack_title,
+        stack_description: jsonified[0].stack_description,
+        stack_id: stack_id,
+        user_id: user_id
+    }
+
+    return myStackInfo
+}
 
 export default function CreateStack(){
-
+    const card_stack = useLoaderData<typeof loader>()
+    type Stack = {
+        stack_title : string,
+        stack_description : string
+        stack_id : number,
+        user_id : any
+    }
+    const [myStack, setMyStack] = useState<Stack>(
+        {
+            stack_title : card_stack.stack_title,
+            stack_description: card_stack.stack_description,
+            stack_id: card_stack.stack_id,
+            user_id: card_stack.user_id
+        }
+    )
+    console.log(myStack)
     const card = {
+        card_id : 0,
         question: '',
         image: '',
         answer: ''
     }
 
     const [title, setTitle] = useState('Untitled Stack');
+    const [description, setDescription] = useState('')
     const [tags, setTags] = useState<string[]>([]);
-    const [questions, setQuestions] = useState<Object[]>([card])
+    const [questions, setQuestions] = useState<Object[]>([])
     const questionCards = questions.map((question, index) => {
         return(
             <motion.div layout
@@ -34,7 +79,7 @@ export default function CreateStack(){
                 <label htmlFor="">Question  {index + 1}
                     <textarea 
                         value={question.question}
-                        onChange={(e) => editCard(e.target.value, index, 'question')}
+                        onChange={(e) => editQuestion(e.target.value, index, question.card_id)}
                         className="
                             p-[0.5rem]
                             rounded-[5px]
@@ -47,6 +92,8 @@ export default function CreateStack(){
 
                 <label htmlFor="">Answer
                     <textarea 
+                        value={question.answer}
+                        onChange={(e) => editAnswer(e.target.value, index, question.card_id)}
                         className="
                             h-[70px]
                             p-[1rem]
@@ -63,7 +110,7 @@ export default function CreateStack(){
                         absolute bottom-[0.5rem] md:bottom-[1rem] lg:bottom-[1rem] right-[1.5rem] 
                         text-xl text-red-500 
                         hover:cursor-pointer"
-                    onClick={() => deleteCard(index)}></i>
+                    onClick={() => deleteCard(index, question.card_id)}></i>
             </motion.div>
         )
     })
@@ -95,21 +142,106 @@ export default function CreateStack(){
         )
     })
 
-    function addCard(){
-        setQuestions(prev => [...prev , card])
+    async function addCard(){
+        const response = await fetch(`${API_URL}/addcard`,
+            {
+                method: 'POST',
+                headers : {
+                    'Content-Type' : 'application/json'
+                },
+                body: JSON.stringify({stack_id : myStack.stack_id, user_id: myStack.user_id})
+            }
+        );
+
+        const result = await response.json();
+        const newCard = {...card, card_id: result.card_id}
+        console.log(result)
+
+        setQuestions(prev => [...prev , newCard])
     }
 
-    function editCard(value:string, id:number, type:string){
+    let editTimeout = useRef<NodeJS.Timeout>(null)
 
-        if(type === 'question')
-            setQuestions(prev => prev.map((card, index) => index == id ? {...card, question: value} : card))
-        else if(type === 'answer')
-            setQuestions(prev => prev.map((card, index) => index === id ? {...card, answer: value} : card))
+    async function editAnswer(value:string, id:number, card_id:number){
+        setQuestions(prev => prev.map((card, index) => index == id ? {...card, answer: value} : card))
+        if(editTimeout.current)
+            clearTimeout(editTimeout.current)
+
+        editTimeout.current = setTimeout(async () => {
+            const response = await fetch(`${API_URL}/editcard`,
+            {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type' : 'application/json'
+                    },
+                    body: JSON.stringify({card_id: card_id, type: 'answer', value: value})
+                }
+            )
+
+            const result = await response.json()
+            console.log(result)
+        }, 1000)
+
+        return () => {
+            if (editTimeout.current)
+                clearTimeout(editTimeout.current)
+        }
+        // if(type === 'question')
+        //     setQuestions(prev => prev.map((card, index) => index == id ? {...card, question: value} : card))
+        // else if(type === 'answer')
+        //     setQuestions(prev => prev.map((card, index) => index === id ? {...card, answer: value} : card))
+
     }
 
-    function deleteCard(id:number){
+    async function editQuestion(value:string, id:number, card_id:number){
+        setQuestions(prev => prev.map((card, index) => index == id ? {...card, question: value} : card))
+        if(editTimeout.current)
+            clearTimeout(editTimeout.current)
+
+        editTimeout.current = setTimeout(async () => {
+            const response = await fetch(`${API_URL}/editcard`,
+            {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type' : 'application/json'
+                    },
+                    body: JSON.stringify({card_id: card_id, type: 'question', value: value})
+                }
+            )
+
+            const result = await response.json()
+            console.log(result)
+        }, 1000)
+
+        return () => {
+            if (editTimeout.current)
+                clearTimeout(editTimeout.current)
+        }
+        // if(type === 'question')
+        //     setQuestions(prev => prev.map((card, index) => index == id ? {...card, question: value} : card))
+        // else if(type === 'answer')
+        //     setQuestions(prev => prev.map((card, index) => index === id ? {...card, answer: value} : card))
+
+    }
+
+
+    
+
+    async function deleteCard(id:number, card_id){
         const filtered = questions.filter((question,index) => index != id )
         setQuestions(filtered)
+
+        const response = await fetch(`${API_URL}/deletecard` ,
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type' : 'application/json'
+                },
+                body: JSON.stringify({card_id: card_id})
+            }
+        )
+
+        const result = await response.json()
     }
 
     function enterTag(value:string){
@@ -148,6 +280,100 @@ export default function CreateStack(){
             document.getElementById(id.toString()).style.borderColor =  'rgba(130, 43, 141, 0.32)';
         }, 2000)
     }
+
+    // --------------------USE EFFECTS--------------------------------
+    // ===============================================================
+
+    // let timeout;
+    // useEffect(() => {
+    //     clearTimeout(timeout)
+
+    //     setTimeout(() => {
+    //         //commit state changes to database
+    //     }, 5000)
+    // }, [questions])
+
+    //update database when changes are made to title an description
+    const stackTimeout = useRef<NodeJS.Timeout>(null);
+
+    useEffect(() => {
+        if(stackTimeout.current)
+            clearTimeout(stackTimeout.current)
+        
+         stackTimeout.current = setTimeout(async () => {
+            const response = await fetch(`${API_URL}/editstack`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-type' : 'application/json'
+                    },
+                    body: JSON.stringify({stack_id: myStack.stack_id, title : myStack.stack_title, description : myStack.stack_description})
+                }
+            )
+
+            const jsonified = await response.json()
+            console.log(jsonified)
+        }, 3000)
+
+
+        return () => {
+            if(stackTimeout.current)
+                clearTimeout(stackTimeout.current)
+        }
+    }, [myStack])
+
+    //Get cards 
+    useEffect(() => {
+        async function getCards(){
+            const response = await fetch(`${API_URL}/getcards`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type' : 'application/json'
+                    },
+                    body: JSON.stringify({stack_id : myStack.stack_id})
+                }
+            )
+
+            const cards = await response.json()
+
+            setQuestions(cards)
+        }
+
+        getCards()
+    }, [])
+
+    const editCardTimeout = useRef<NodeJS.Timeout>(null);
+
+    // UPDATE CARDS
+    // useEffect(() => {
+    //     if(editCardTimeout.current){
+    //         clearTimeout(editCardTimeout.current)
+    //     }
+
+    //     editCardTimeout.current = setTimeout(async () => {
+    //          const response = await fetch(`${API_URL}/editcard`, 
+    //             {
+    //                 method: 'POST',
+    //                 headers: {
+    //                     'Content-Type' : 'application/json'
+    //                 },
+    //                 body: JSON.stringify(questions)
+    //             }
+    //         )
+
+    //         const result = await response.json()
+    //         console.log(result)
+    //     })
+
+    //     return () => {
+    //         if(editCardTimeout.current){
+    //             clearTimeout(editCardTimeout.current)
+    //         }
+    //     }
+
+    // }, [questions])
+
     return(
         <div className="bg-[#f4f4f4] h-full text-[#272626] flex">
             <div className="
@@ -171,14 +397,15 @@ export default function CreateStack(){
                 })}
             </div>
             <div className=" p-[1.5rem] lg:p-[2.5rem] w-full md:w-[calc(100vw-60px)] lg:w-[calc(100vw-60px)] relative overflow-y-auto">
-                <p className="text-2xl font-semibold mb-[1rem]">{title}</p>
+                <p className="text-2xl font-semibold mb-[1rem]">{myStack.stack_title === '' ? 'Untitled Stack' : myStack.stack_title}</p>
                 <div className="bg-[#FFFFFF] p-[1.5rem] min-h-[200px] border-2 border-[#822b8d36] rounded-[10px]">
                     <p className="font-medium text-lg">Stack Information</p>
                     <div className="mt-[1rem] flex flex-col gap-[1rem] md:flex-row lg:flex-row">
                         <input 
+                            value={myStack.stack_title}
                             type="text" 
                             placeholder="Title" 
-                            onChange={(e) => setTitle(e.target.value === '' ? 'Untitled Stack' : e.target.value)}
+                            onChange={(e) => setMyStack( prev => ({...prev, stack_title : e.target.value }))}
                             className="
                                 w-[100%]
                                 h-[40px] md:w-[35%] lg:[35%] p-[0.5rem] 
@@ -186,6 +413,8 @@ export default function CreateStack(){
                                 rounded-[5px] 
                                 border border-[#27262641]"/>
                         <input 
+                            value={myStack.stack_description}
+                            onChange={(e) => setMyStack( prev => ({...prev, stack_description : e.target.value }))}
                             id="description"
                             type="text" 
                             placeholder="Description" 
@@ -197,7 +426,8 @@ export default function CreateStack(){
                     <div className="mt-[1rem]">
                         <p className="font-semibold">Tags</p>
                         <div className="flex gap-[0.6rem] pt-[0.5rem] flex-col md:flex-row lg:flex-row">
-                            <input 
+                            <input
+
                                 id="tag-input"
                                 onKeyDown={(e) => e.key === 'Enter' && enterTag(e.target.value)}
                                 placeholder="Add Tag"
@@ -247,15 +477,19 @@ export default function CreateStack(){
                             Add a Card
                     </div>
                 </div>
-                <div>
+                <div className="fixed bottom-[2rem]">
                     <button 
                         onClick={addCard}
                         className="
-                            fixed bottom-[2rem]
                             bg-[#f4af30c7]
                             w-[150px] h-[40px]
                             font-semibold
-                            rounded-[20px]">Add a card</button>    
+                            rounded-[20px]">Add a card</button> 
+                   <Link 
+                    to={`/main/quiz/${myStack.stack_id}`}
+                    className="
+                        w-[150px] h-[40px] 
+                        bg-[#f4af30c7]">Study</Link>
                 </div>
             </div>
         </div>

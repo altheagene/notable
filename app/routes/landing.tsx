@@ -1,6 +1,6 @@
 import type { Route } from "./+types/home";
 import notable_logo from '../images/notable_logo.png'
-import { Link } from "react-router";
+import { Link, redirect } from "react-router";
 import { useState } from "react";
 
 export function meta({}: Route.MetaArgs) {
@@ -10,9 +10,18 @@ export function meta({}: Route.MetaArgs) {
   ];
 }
 
+export async function loader({request} : Route.LoaderArgs){
+  const {getUserId} = await import('../sessions.server')
+  const userId = await getUserId(request)
+
+  if(userId){
+    return redirect('/main')
+  }
+}
+
 export default function Landing(){
   
-  const [showNav, setShowNav] = useState(false);
+  const [showNav, setShowNav] = useState<boolean>(false);
 
   return(
       <div className="bg-[#522258] h-dvh">
@@ -28,12 +37,12 @@ export default function Landing(){
             <div className="h-full flex items-center text-sm hidden lg:flex md:flex text-[#f4f4f4]">
               <Link 
                 className="w-[110px] h-6/10 text-center flex justify-center items-center" 
-                to='/loginregister'
+                to='/loginregister?type=login'
                 state={'login'}>Login</Link>
 
               <Link  
                 className="w-[110px] h-6/10 bg-[#E69F1E] font-semibold rounded-[5px] text-center flex justify-center items-center" 
-                to='/loginregister'
+                to='/loginregister?type=signup'
                 state={'signup'}>Sign Up</Link>
             </div>
         </nav>

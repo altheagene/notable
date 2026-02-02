@@ -1,7 +1,8 @@
 import type { Route } from "./+types/home";
 import notable_logo from '../images/notable_logo.png'
-import { Link, Outlet, useLocation } from "react-router";
+import { Link, Outlet, useLocation, Form, redirect, type ActionFunctionArgs } from "react-router";
 import { useState, useEffect, useRef } from "react";
+import {API_URL} from '../config.js'
 import {motion, AnimatePresence} from 'framer-motion'
 
 
@@ -12,19 +13,42 @@ export function meta({}: Route.MetaArgs) {
   ];
 }
 
+export async function loader({request} : Route.LoaderArgs){
+
+    const {getUserId} = await import('../sessions.server')
+    const userId = await getUserId(request)
+    if(!userId){
+        console.log('aaaa')
+        return redirect('/')
+    }
+
+//    const user_id = await fetch(`${API_URL}/isloggedin`)
+//                     .then(res => res.json())
+    
+//     if(!user_id){
+//         redirect('/main')
+//     }
+}
+
+export async function action({request} : Route.ActionFunctionArgs){
+    const {logout} = await import ('../sessions.server')
+    console.log('Hi')
+    return logout(request)
+}
+
 export default function MainApp(){
 
     const [showNav, setShowNav] = useState(false)
 
     return(
-        <div>
+        <div className="bg-[#f4f4f4] h-full overflow-x-auto">
             {showNav &&
             <>
                 <div 
                     className="
                         w-[250px] h-dvh
                         absolute
-                        bg-[#f4f4f4] z-3">
+                        bg-[#f4f4f4] z-500">
                     <i className="bi bi-x text-4xl pr-[0.5rem] cursor-pointer" onClick={() => setShowNav(false)}></i>
                     <ul className="font-medium p-[1rem] pl-[0.5rem] flex flex-col gap-[1rem]">
                         <li>My Stack</li>
@@ -64,8 +88,13 @@ export default function MainApp(){
                         hidden lg:block">
                     <i className="bi bi-plus mr-[0.5rem]"></i>Create Stack
                 </Link>
+                <Form name="logout" method="POST" className="text-white">
+                    <button 
+                        type="submit"
+                        className="text-white">Logout</button>
+                </Form>
             </nav>
-            <div className="h-[calc(100dvh-55px)]">
+            <div className="h-[calc(100dvh-55px)] bg-[#f4f4f4]">
                 <Outlet></Outlet>
             </div>
         </div>

@@ -4,8 +4,9 @@ export default [
     index("routes/landing.tsx"),
     route('loginregister', 'routes/loginregister.tsx'),
     route('main', 'routes/mainapp.tsx', [
-        route('createstack', 'routes/createStack.tsx'),
         route('mystack', 'routes/myStack.tsx'),
-        route('quiz', 'routes/quiz.tsx')
-    ])
+        route('mystack/:stackid', 'routes/createStack.tsx'),
+        route('quiz/:stackid', 'routes/quiz.tsx'),
+        route('quiz/results', 'routes/results.tsx')
+    ]),
 ] satisfies RouteConfig;

@@ -39,7 +39,7 @@ export async function createUserSession({
     redirectUrl
 }: {
     request: Request,
-    userId: string,
+    userId: number,
     remember: boolean,
     redirectUrl? : string
 }){
@@ -50,7 +50,7 @@ export async function createUserSession({
             'Set-Cookie' : await commitSession(session, {
                 httpOnly: true,
                 sameSite: 'lax',
-                maxAge: remember ? 60 * 60 * 4 * 7 : undefined
+                maxAge: remember ? 60 * 60 * 24 : undefined
             })
         }
     })
