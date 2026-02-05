@@ -1,4 +1,8 @@
-from flask import Flask, jsonify, request, session
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from dotenv import load_dotenv
+from openai import OpenAI
+import os
 import mysql.connector
 import smtplib
 import random
@@ -6,16 +10,26 @@ from email.mime.text import MIMEText
 import redis
 from flask_cors import CORS
 
-
-app = Flask(__name__)
-app.secret_key = 'super-secret-key'
-CORS(app, supports_credentials=True, origins=["http://localhost:5173"])
-database = 'notable_db'
-
-app.config.update(
-    SESSION_COOKIE_SAMESITE='None',   # 'None' if you have frontend on a different domain
-    SESSION_COOKIE_SECURE=False       # True only if HTTPS
+load_dotenv()
+API_KEY = os.getenv('OPENROUTER_API_KEY')
+client = OpenAI(api_key=API_KEY, base_url='https://openrouter.ai/api/v1')
+completion = client.chat.completions.create(
+    model="meta-llama/llama-3.1-8b-instruct",
+    messages=[{'role': 'user', 'content': 'Hello AI!'}]
 )
+
+print(completion.choices[0].message.content)
+
+app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=['http://localhost:5173'],
+    allow_credentials = True,
+    allow_methods=['*'],
+    allow_headers=['*']
+)
+
+database = 'notable_db'
 
 r = redis.Redis(
     host='localhost',
@@ -24,7 +38,6 @@ r = redis.Redis(
     decode_responses = True
 )
 
-print(r.ping())
 
 
 # ---------------------------LOGIN/REGISTER ROUTES------------------------------#
@@ -49,20 +62,20 @@ def send_email(to_email, otp):
         server.login(my_email, my_password)
         server.send_message(message)
 
-@app.route('/register', methods=['POST'])
-def register():
-    data = request.get_json()
+@app.post('/register')
+async def register(request:Request):
+    data = await request.json()
     email = data['email']
     otp = generate_otp()
 
     send_email(email, otp)
     store_otp(email, otp)
     
-    return jsonify({'success' : True})
+    return {'success' : True}
 
-@app.route('/verifyemail', methods=['POST'])
-def verifyemail():
-    data = request.get_json()
+@app.post('/verifyemail')
+async def verifyemail(request:Request):
+    data = await request.json()
     email = data['email']
     user_otp = data['code']
     stored_otp = r.get(f'otp:{email}')
@@ -71,13 +84,13 @@ def verifyemail():
 
     if(stored_otp == user_otp):
         r.delete(f'otp:{email}')
-        return jsonify({'success' : True})
+        return {'success' : True}
     else:
-        return jsonify({'success' : False})
+        return {'success' : False}
 
-@app.route('/checkemail', methods=['POST'])
-def check_email():
-    data = request.get_json()
+@app.post('/checkemail')
+async def check_email(request : Request):
+    data = await request.json()
     email = data['email']
     sql = f'''
         SELECT * FROM users 
@@ -86,11 +99,11 @@ def check_email():
 
     result = getprocess(sql, [email])
 
-    return jsonify({'exists' : len(result) > 0})
+    return {'exists' : len(result) > 0}
 
-@app.route('/checkusername', methods=['POST'])
-def check_username():
-    data = request.get_json()
+@app.post('/checkusername')
+async def check_username(request : Request):
+    data = await request.json()
     username = data['username']
 
     sql = f'''
@@ -100,11 +113,11 @@ def check_username():
 
     results = getprocess(sql, [username])
 
-    return jsonify({'exists': len(results) > 0})
+    return {'exists': len(results) > 0}
 
-@app.route('/createaccount', methods=['POST'])
-def create_account():
-    data = request.get_json()
+@app.post('/createaccount')
+async def create_account(request : Request):
+    data = await request.json()
     keyvalue = dict(data)
     print(keyvalue)
     keys = list(keyvalue.keys())
@@ -121,9 +134,9 @@ def create_account():
 
     result = postprocess(sql, values)
 
-    return jsonify(result)
+    return result
 
-@app.route('/get_enduser_categ_id', methods=['GET'])
+@app.get('/get_enduser_categ_id')
 def get_enduser_categ_id():
     sql = f'''
             SELECT category_id as id from user_categories
@@ -131,11 +144,11 @@ def get_enduser_categ_id():
         '''
     result= getprocess(sql, [])
 
-    return jsonify(result)
+    return result
 
-@app.route('/verifylogin', methods=['POST'])
-def verify_login():
-    data = request.get_json()
+@app.post('/verifylogin')
+async def verify_login(request : Request):
+    data = await request.json()
     username = data['username']
     user_password = data['user_password']
 
@@ -146,7 +159,7 @@ def verify_login():
 
     username_exists = getprocess(username_sql, [username])
     if (len(username_exists) == 0):
-        return jsonify({'username_exists' : False, 'correct_password' : False})
+        return {'username_exists' : False, 'correct_password' : False}
 
     password_sql = f'''
         SELECT * FROM users
@@ -155,33 +168,43 @@ def verify_login():
 
     correct_password = getprocess(password_sql, [username, user_password])
     print(correct_password[0]['user_id'])
-    print('hi')
-    session['user_id'] = correct_password[0]['user_id']
-    user = session.get('user_id')
+    # print('hi')
+    # session['user_id'] = correct_password[0]['user_id']
+    # user = session.get('user_id')
 
-    print("Session contents:", dict(session))
+    # print("Session contents:", dict(session))
 
-    return jsonify({'username_exists' : True, 'correct_password' : len(correct_password) > 0, 'user_id' : correct_password[0]['user_id']})
+    return {'username_exists' : True, 'correct_password' : len(correct_password) > 0, 'user_id' : correct_password[0]['user_id']}
 
 
-@app.route('/isloggedin', methods=['POST'])
-def is_logged_in():
-    user_id = session.get('user_id')
-    print(f'Session: {session.get('user_id')}')
+# @app.route('/isloggedin', methods=['POST'])
+# def is_logged_in():
+#     user_id = session.get('user_id')
+#     print(f'Session: {session.get('user_id')}')
 
-    return jsonify(user_id)
+#     return jsonify(user_id)
 
-@app.route('/test-session', methods=['GET'])
-def test_session():
-    session['user_id'] = 123
-    return jsonify({'message': 'session set'})
+# @app.route('/test-session', methods=['GET'])
+# def test_session():
+#     session['user_id'] = 123
+#     return jsonify({'message': 'session set'})
 
 # -------------------------CREATE FOLDER/ MY STACKS  ROUTES---------------------------#
 # ==============================================================================#
 
-@app.route('/getstacks', methods=['POST'])
-def get_stacks():
-    data = request.get_json()
+@app.post('/api/ai')
+async def ask_api(request : Request):
+    data = await request.json()
+    prompt = data['prompt']
+    completion = client.chat.completions.create(
+        model="meta-llama/llama-3.1-8b-instruct",
+        messages=[{'role': 'user', 'content': prompt}]
+    )
+    return {'response' : completion.choices[0].message.content}
+
+@app.post('/getstacks')
+async def get_stacks(request : Request):
+    data = await request.json()
     user_id = data['user_id']
 
     sql = f'''
@@ -191,11 +214,11 @@ def get_stacks():
 
     result = getprocess(sql, [user_id])
 
-    return jsonify(result)
+    return result
 
-@app.route('/deletestack', methods=['POST'])
-def delete_stack():
-    data = request.get_json()
+@app.post('/deletestack')
+async def delete_stack(request : Request):
+    data = await request.json()
     stack_id = data['stack_id']
     user_id = data['user_id']
 
@@ -206,11 +229,11 @@ def delete_stack():
 
     result = postprocess(sql, [stack_id, user_id])
 
-    return jsonify(result)
+    return result
 
-@app.route('/createfolder', methods=['POST'])
-def create_folder():
-    data = request.get_json()
+@app.post('/createfolder')
+async def create_folder(request : Request):
+    data = await request.json()
     user_id = data['user_id']
     print(user_id)
     folder_name = data['folder_name']
@@ -223,11 +246,11 @@ def create_folder():
         '''
     result = postprocess(sql, [user_id, folder_name, folder_description])
 
-    return jsonify({'success' : result})
+    return {'success' : result}
 
-@app.route('/getfolders', methods=['POST'])
-def get_folders():
-    data = request.get_json()
+@app.post('/getfolders')
+async def get_folders(request : Request):
+    data = await request.json()
     user_id = data['user_id']
 
     sql = f'''
@@ -236,15 +259,15 @@ def get_folders():
     '''
 
     result = getprocess(sql, [user_id])
-    print("HELLO", result)
-    return jsonify({'response': result})
+
+    return {'response': result}
 
 # -------------------------- CREATE STACK ROUTES -----------------------------
 # ============================================================================
 
-@app.route('/editstack', methods=['POST'])
-def edit_stack():
-    data = request.get_json()
+@app.post('/editstack')
+async def edit_stack(request : Request):
+    data = await request.json()
     stack_id = data['stack_id']
     title = data['title']
     description = data['description']
@@ -266,13 +289,13 @@ def edit_stack():
 
         result = postprocess(sql, [title, description, stack_id])
 
-        return jsonify({'updated' : result})
-    return jsonify({'exists' : False})
+        return {'updated' : result}
+    return {'exists' : False}
 
-@app.route("/createstack", methods=['POST'])
-def save_stack():
+@app.post("/createstack")
+async def save_stack(request : Request):
 
-    data = request.get_json()
+    data = await request.json()
     user_id = data['user_id']
     sql = f'''
         INSERT into card_stack
@@ -291,15 +314,13 @@ def save_stack():
     '''
 
     result = getprocess(sql, [user_id])
-    print(result)
 
-    return jsonify({'id' : result[0]['stack_id']})
+    return {'id' : result[0]['stack_id']}
 
-@app.route('/getstack', methods=['POST'])
-def get_stack():
-    print('HI')
+@app.post('/getstack')
+async def get_stack(request : Request):
     try:
-        data = request.get_json()
+        data = await request.json()
         stack_id = data['stack_id']
         user_id = data['user_id']
 
@@ -310,13 +331,13 @@ def get_stack():
 
         result = getprocess(sql, [stack_id, user_id])
 
-        return jsonify(result)
+        return result
     except Exception as e:
         print(e)
 
-@app.route('/addcard', methods=['POST'])
-def add_card():
-    data = request.get_json()
+@app.post('/addcard')
+async def add_card(request : Request):
+    data = await request.json()
     stack_id = data['stack_id']
     user_id = data['user_id']
 
@@ -337,11 +358,11 @@ def add_card():
     result = getprocess(sql, [stack_id])
     print(result)
 
-    return jsonify({'card_id' : result[0]['card_id']})
+    return {'card_id' : result[0]['card_id']}
 
-@app.route('/editcard', methods=['POST'])
-def edit_card():
-    data = request.get_json()
+@app.post('/editcard')
+async def edit_card(request : Request):
+    data = request.json()
     card_id = data['card_id']
     type = data['type']
     value = data['value']
@@ -354,11 +375,11 @@ def edit_card():
 
     result = postprocess(sql, [value, card_id])
 
-    return jsonify({'success' : result})
+    return {'success' : result}
 
-@app.route('/getcards', methods=['POST'])
-def get_cards():
-    data = request.get_json()
+@app.post('/getcards')
+async def get_cards(request : Request):
+    data = await request.json()
     stack_id = data['stack_id']
 
     sql = f'''
@@ -368,11 +389,11 @@ def get_cards():
 
     result = getprocess(sql, [stack_id])
 
-    return jsonify(result)
+    return result
 
-@app.route('/deletecard', methods=['POST'])
-def delete_card():
-    data = request.get_json()
+@app.post('/deletecard')
+async def delete_card(request : Request):
+    data = await request.json()
     card_id = data['card_id']
 
     sql = f'''
@@ -382,14 +403,14 @@ def delete_card():
 
     result = postprocess(sql, [card_id])
 
-    return jsonify(result)
+    return result
 
 # ========================= STUDY ROUTES ============================
 # ===================================================================
 
-@app.route('/studystack', methods=['POST'])
-def study_stack():
-    data = request.get_json()
+@app.post('/studystack')
+async def study_stack(request : Request):
+    data = await request.json()
     stack_id = data['stack_id']
 
     sql = f'''
@@ -406,7 +427,7 @@ def study_stack():
 
     cards = getprocess(sql, [stack_id])
 
-    return jsonify({'stack_details' : stack_details[0], 'cards' : cards})
+    return {'stack_details' : stack_details[0], 'cards' : cards}
 
 def connect_db() -> any:
     conn = mysql.connector.connect(
@@ -451,4 +472,5 @@ def getprocess(sql, values):
         conn.close()
 
 if __name__ == '__main__' :
-    app.run(debug=True, use_reloader=False)
+   import uvicorn
+   uvicorn.run(app, host='127.0.0.1', reload=True, port=8000)

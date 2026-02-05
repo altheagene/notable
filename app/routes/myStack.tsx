@@ -53,7 +53,7 @@ export default function MyFlashcards(){
     const folderDesc = useRef(null);
     const [folders, setFolders] = useState<any[]>()
     const [stacks, setStacks] = useState<any[]>()
-    console.log(user_id)    
+    const aiPromptRef = useRef<HTMLInputElement>(null)   
 
     useEffect(() => {
         async function getStacks (){
@@ -139,19 +139,22 @@ export default function MyFlashcards(){
 
     async function createFolder(){
         
-        const postFunc = await fetch(`${API_URL}/createfolder`,
-            {
-                method: 'POST',
-                credentials: 'include',
-                headers: {
-                    'Content-Type' : 'application/json'
-                },
-                body: JSON.stringify({'folder_name' : folderTitle.current.value.trim(), 'folder_description' : folderDesc.current.value.trim()})
-            }
-        )
+        if(folderTitle.current){
+            const postFunc = await fetch(`${API_URL}/createfolder`,
+                {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type' : 'application/json'
+                    },
+                    body: JSON.stringify({'folder_name' : folderTitle.current.value.trim(), 'folder_description' : folderDesc.current.value.trim()})
+                }
+            )
 
-        const response = await postFunc.json()
-        console.log(response)
+            const response = await postFunc.json()
+            console.log(response)
+            }
+    
     }
 
     async function createNewStack(){
@@ -172,6 +175,24 @@ export default function MyFlashcards(){
         console.log(jsonified)
 
         navigate(`/main/mystack/${jsonified.id}`)
+    }
+
+    async function generateAIStack(){
+        if(aiPromptRef.current) {
+            const prompt = aiPromptRef.current.value
+            const response = await fetch(`${API_URL}/api/ai`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type' : 'application/json'
+                    },
+                    body: JSON.stringify({prompt:prompt})
+                }
+            )
+
+            const result = await response.json()
+            console.log(result)
+        }
     }
 
     const modalElement = 
@@ -243,10 +264,13 @@ export default function MyFlashcards(){
                             Let us create a stack for you!</p>
                     <p className="w-[80%]">Enter a topic in the text box below or drag and drop a document and 
                         we’ll generate a stack og cards for you to study.</p>
-                    <div className="flex mt-[2rem] h-[45px] max-w-[400px] w-full bg-[#f4f4f4] rounded-[10px] relative pt-[0.3rem] pb-[0.3rem] pl-[0.5rem] pr-[0.5rem] items-center ">
-                        <input className="w-full h-full"></input>
+                    <div className="flex mt-[2rem] h-[45px] max-w-[400px] w-full bg-[#f4f4f4] rounded-[10px] relative items-center ">
+                        <input 
+                            className="w-full h-full rounded-[10px] p-[0.5rem]"
+                            ref={aiPromptRef}></input>
                         <button
-                            className="text-sm h-[80%] bg-[#C594CC] pr-[0.5rem] pl-[0.5rem] rounded-[5px] my-shadow"> Generate </button>
+                            onClick={generateAIStack}
+                            className="text-sm h-[80%] bg-[#C594CC] pr-[0.5rem] pl-[0.5rem] rounded-[5px] my-shadow absolute right-[1rem]"> Generate </button>
                     </div>
                 </div>
             </center>

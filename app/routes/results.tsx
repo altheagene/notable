@@ -37,7 +37,7 @@ export default function ResultsPage(){
 
 
     return(
-        <div className='bg-[#f4f4f4]'>
+        <div className='bg-[#f4f4f4] min-h-screen'>
             <TrackedResult cards={cards} answerTrack={answerTrack} title={title} stackId={stackId}/>
         </div>
         
@@ -73,9 +73,9 @@ function TrackedResult({cards, answerTrack, title, stackId} : ResultData){
         <div className='flex flex-col items-center p-[2rem] gap-[2rem]'>
             <div className='
                 bg-white
-                max-w-[700px] w-full h-[230px] 
+                max-w-[700px] w-full min-h-[230px] 
                 border-2 border-[#C594CC]
-                pt-[2rem] pl-[3rem] rounded-[30px] my-shadow
+                p-[1.5rem] sm:pt-[2rem] sm:pl-[3rem] rounded-[30px] my-shadow
                 relative flex flex-col gap-[1.5rem]'>
                 <p className='text-2xl font-bold text-[#272626]'>{title}</p>
                 <div>
@@ -85,7 +85,7 @@ function TrackedResult({cards, answerTrack, title, stackId} : ResultData){
                     </div>
                 </div>
                 <Link 
-                    className=' flex justify-center items-center h-[35px] w-[120px] bg-[#C594CC] font-medium rounded-[10px] my-shadow absolute bottom-[2rem] right-[2rem]'
+                    className=' flex justify-center items-center h-[35px] w-[120px] bg-[#C594CC] font-medium rounded-[10px] my-shadow sm:absolute sm:bottom-[2rem] sm:right-[2rem]'
                     to={`/main/quiz/${stackId}`}
                     >
                         <i className='bi bi-arrow-clockwise'></i>Retake</Link>
