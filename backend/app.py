@@ -1,3 +1,4 @@
+import json
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
@@ -196,11 +197,18 @@ async def verify_login(request : Request):
 async def ask_api(request : Request):
     data = await request.json()
     prompt = data['prompt']
+    object_prompt = 'STRICTLY Reply in JSON only. NO additional text. JUST JSON. Generate a list of objects with keys of question and answer with their corresponding values that are strings ' \
+    'for a flashcard quiz. The topic of these flashcards would be '
+    
     completion = client.chat.completions.create(
         model="meta-llama/llama-3.1-8b-instruct",
-        messages=[{'role': 'user', 'content': prompt}]
+        messages=[{'role': 'user', 'content': object_prompt + prompt}]
     )
-    return {'response' : completion.choices[0].message.content}
+
+    print(completion.choices[0].message.content)
+    response = completion.choices[0].message.content
+    json_str = json.loads(response)
+    return {'response' : json_str}
 
 @app.post('/getstacks')
 async def get_stacks(request : Request):

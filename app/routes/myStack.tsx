@@ -191,7 +191,8 @@ export default function MyFlashcards(){
             )
 
             const result = await response.json()
-            console.log(result)
+            console.log(result.response)
+            
         }
     }
 
@@ -298,7 +299,7 @@ export default function MyFlashcards(){
             </div>
             
             <p className="text-[#272626] text-2xl font-semibold mt-[3.5rem]">My Flashcards</p>
-            <div className="mt-[2rem] flex gap-2" >
+            <div className="mt-[2rem] flex flex-wrap gap-2" >
                 <div 
                     onClick={createNewStack}
                     className="
