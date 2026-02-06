@@ -186,7 +186,7 @@ async def ask_api(request : Request):
     data = await request.json()
     prompt = data['prompt']
     object_prompt = 'STRICTLY Reply in JSON only. NO additional text. JUST JSON. Generate a list of objects with keys of question and answer with their corresponding values that are strings ' \
-    'for a flashcard quiz. The topic of these flashcards would be '
+    'for a flashcard quiz. First JSON should have keys of stackTitle and description. The topic of these flashcards would be '
     
     completion = client.chat.completions.create(
         model="meta-llama/llama-3.1-8b-instruct",
