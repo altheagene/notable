@@ -39,6 +39,32 @@ export default function CreateStack(){
         stack_id : number,
         user_id : any
     }
+
+    const colors = [
+        {
+            bg: '#FFACAC',
+            border: '#D65555'
+        },
+        {
+            bg: '#CBF3BB',
+            border: '#6BAB52'
+        },
+        {
+            bg: '#E1ABE8',
+            border: '#AC4DB8'
+        }
+    ]
+
+    const colorElements = colors.map((color) => {
+        return(
+            <div 
+                style={{backgroundColor: color.bg, borderColor: color.border}}
+                className="
+                    border-2 h-[30px] w-[30px] rounded-[15px]">
+
+            </div>
+        )
+    })
     const [myStack, setMyStack] = useState<Stack>(
         {
             stack_title : card_stack.stack_title,
@@ -47,7 +73,6 @@ export default function CreateStack(){
             user_id: card_stack.user_id
         }
     )
-    console.log(myStack)
     const card = {
         card_id : 0,
         question: '',
@@ -222,10 +247,7 @@ export default function CreateStack(){
         // else if(type === 'answer')
         //     setQuestions(prev => prev.map((card, index) => index === id ? {...card, answer: value} : card))
 
-    }
-
-
-    
+    }   
 
     async function deleteCard(id:number, card_id){
         const filtered = questions.filter((question,index) => index != id )
@@ -423,37 +445,47 @@ export default function CreateStack(){
                                 h-[40px] p-[0.5rem] 
                                 bg-[#f4f4f4] rounded-[5px] border border-[#27262641]"/>
                     </div>
-                    <div className="mt-[1rem]">
-                        <p className="font-semibold">Tags</p>
-                        <div className="flex gap-[0.6rem] pt-[0.5rem] flex-col md:flex-row lg:flex-row">
-                            <input
 
-                                id="tag-input"
-                                onKeyDown={(e) => e.key === 'Enter' && enterTag(e.target.value)}
-                                placeholder="Add Tag"
-                                className="
-                                    p-[0.5rem]
-                                    w-[100%] sm:w-[130px] md:w-[130px] lg:w-[130px] h-[35px] 
-                                    bg-[#F4F4F4] 
-                                    border border-[#27262641] 
-                                    rounded-[10px]
-                                    text-sm
-                                    focus:outline-none">
-                            </input>
-                            <div className="flex gap-[0.5rem] flex-wrap">
-                                {tags.length > 0 ? tagsElements : ''}
+                    <div className="flex flex-col sm:flex-row sm:items-center mt-[1rem]">
+                        <div className=" flex-1">
+                            <p className="font-semibold">Tags</p>
+                            <div className="flex gap-[0.6rem] mt-[0.5rem] flex-col md:flex-row lg:flex-row">
+                                <input
+
+                                    id="tag-input"
+                                    onKeyDown={(e) => e.key === 'Enter' && enterTag(e.target.value)}
+                                    placeholder="Add Tag"
+                                    className="
+                                        p-[0.5rem]
+                                        w-[100%] sm:w-[130px] md:w-[130px] lg:w-[130px] h-[35px] 
+                                        bg-[#F4F4F4] 
+                                        border border-[#27262641] 
+                                        rounded-[10px]
+                                        text-sm
+                                        focus:outline-none">
+                                </input>
+                                <div className="flex gap-[0.5rem] flex-wrap">
+                                    {tags.length > 0 ? tagsElements : ''}
+                                </div>
+                                {/* <button 
+                                    className="
+                                        w-[120px] h-[35px] 
+                                        bg-[#F4F4F4] 
+                                        border border-dashed border-[#27262641] 
+                                        rounded-[20px]
+                                        text-sm">
+                                    Add Tag
+                                </button> */}
                             </div>
-                            {/* <button 
-                                className="
-                                    w-[120px] h-[35px] 
-                                    bg-[#F4F4F4] 
-                                    border border-dashed border-[#27262641] 
-                                    rounded-[20px]
-                                    text-sm">
-                                Add Tag
-                            </button> */}
+                        </div>
+                        <div className="flex-1 flex flex-col ">
+                            <p className="font-semibold">Colors</p>
+                            <div className="flex gap-[1rem] items-center mt-[0.5rem]">
+                                {colorElements}
+                            </div>
                         </div>
                     </div>
+                    
                 </div>
                 <div className="pt-[2rem] flex flex-wrap gap-[1.5rem]">
                     <AnimatePresence>
