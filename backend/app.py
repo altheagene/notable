@@ -185,9 +185,15 @@ async def verify_login(request : Request):
 async def ask_api(request : Request):
     data = await request.json()
     prompt = data['prompt']
-    object_prompt = 'STRICTLY Reply in JSON only. NO additional text. JUST JSON. Generate a list of objects with keys of question and answer with their corresponding values that are strings ' \
-    'for a flashcard quiz. First JSON should have keys of stackTitle and description. The topic of these flashcards would be '
-    
+    object_prompt = (
+    "STRICTLY reply in valid JSON only. "
+    "The JSON must have the following top-level keys: "
+    "`stackTitle` (string), `description` (string), `cards` (array of objects). "
+    "Each object in `cards` must have exactly two string keys: `question` and `answer`. "
+    "Do not include any text outside the JSON. "
+    "Generate flashcards for the topic: "
+)
+
     completion = client.chat.completions.create(
         model="meta-llama/llama-3.1-8b-instruct",
         messages=[{'role': 'user', 'content': object_prompt + prompt}]

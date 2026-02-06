@@ -196,33 +196,34 @@ export default function MyFlashcards(){
 
             const result = await response.json()
             const cards = result.response;
+            console.log(cards)
 
-            const createStack = await fetch(`${API_URL}/createstack`,
-                {
-                    method : 'POST',
-                    headers: {
-                        'Content-Type' : 'application/json'
-                    },
-                    body: JSON.stringify({user_id: user_id})
-                }
-            )
+            // const createStack = await fetch(`${API_URL}/createstack`,
+            //     {
+            //         method : 'POST',
+            //         headers: {
+            //             'Content-Type' : 'application/json'
+            //         },
+            //         body: JSON.stringify({user_id: user_id})
+            //     }
+            // )
 
-            const createStackResponse = await createStack.json();
-            const stack_id = createStackResponse.id;
+            // const createStackResponse = await createStack.json();
+            // const stack_id = createStackResponse.id;
 
-            const createCards = await fetch(`${API_URL}/add_multiple_cards`,
-                {
-                    method : 'POST',
-                    headers: {
-                        'Content-Type' : 'application/json'
-                    },
-                    body: JSON.stringify({stack_id: stack_id, cards : cards})
-                }
-            )
+            // const createCards = await fetch(`${API_URL}/add_multiple_cards`,
+            //     {
+            //         method : 'POST',
+            //         headers: {
+            //             'Content-Type' : 'application/json'
+            //         },
+            //         body: JSON.stringify({stack_id: stack_id, cards : cards})
+            //     }
+            // )
 
-            const createCardsResponse = await createCards.json()
+            // const createCardsResponse = await createCards.json()
 
-            navigate(`/main/mystack/${stack_id}`)
+            // navigate(`/main/mystack/${stack_id}`)
 
             
         }
