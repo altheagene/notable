@@ -2,6 +2,7 @@ import type { Route } from "./+types/home";
 import { useState, useRef, useEffect } from "react"
 import { Link , type ActionFunctionArgs, Form, useLoaderData, redirect, useNavigate} from "react-router"
 import {API_URL} from '../config.js'
+import Generate from '../components/generating'
 
 
 export async function loader({request} : Route.LoaderArgs){
@@ -53,7 +54,8 @@ export default function MyFlashcards(){
     const folderDesc = useRef(null);
     const [folders, setFolders] = useState<any[]>()
     const [stacks, setStacks] = useState<any[]>()
-    const aiPromptRef = useRef<HTMLInputElement>(null)   
+    const aiPromptRef = useRef<HTMLInputElement>(null)
+    const [isGenerating, setIsGenerating] = useState<boolean>(false)   
 
     useEffect(() => {
         async function getStacks (){
@@ -119,6 +121,7 @@ export default function MyFlashcards(){
 
     const stackElements = stacks?.map((stack, index) => {
         return(
+            
             <div 
                 className="
                     h-[150px] w-[300px] bg-[#BBE0EF] flex justify-center items-center rounded-[10px] relative
@@ -179,6 +182,7 @@ export default function MyFlashcards(){
 
     async function generateAIStack(){
         if(aiPromptRef.current) {
+            setIsGenerating(true)
             const prompt = aiPromptRef.current.value
             const response = await fetch(`${API_URL}/api/ai`,
                 {
@@ -191,7 +195,35 @@ export default function MyFlashcards(){
             )
 
             const result = await response.json()
-            console.log(result.response)
+            const cards = result.response;
+
+            const createStack = await fetch(`${API_URL}/createstack`,
+                {
+                    method : 'POST',
+                    headers: {
+                        'Content-Type' : 'application/json'
+                    },
+                    body: JSON.stringify({user_id: user_id})
+                }
+            )
+
+            const createStackResponse = await createStack.json();
+            const stack_id = createStackResponse.id;
+
+            const createCards = await fetch(`${API_URL}/add_multiple_cards`,
+                {
+                    method : 'POST',
+                    headers: {
+                        'Content-Type' : 'application/json'
+                    },
+                    body: JSON.stringify({stack_id: stack_id, cards : cards})
+                }
+            )
+
+            const createCardsResponse = await createCards.json()
+
+            navigate(`/main/mystack/${stack_id}`)
+
             
         }
     }
@@ -250,77 +282,82 @@ export default function MyFlashcards(){
                     </div>
 
     return(
-        <div className="bg-[#f4f4f4] h-full p-[2rem] flex flex-col">
-            {showModal && modalElement}
-            <center>
-                <div className="
+        <div>
+            {isGenerating ? 
+                <Generate /> :
+                <div className="bg-[#f4f4f4] h-full p-[2rem] flex flex-col">
+                    {showModal && modalElement}
+                    <center>
+                        <div className="
+                            
+                            flex flex-col items-center
+                            max-w-[700px] w-full 
+                            bg-[#C594CC] p-[2rem] 
+                            text-center rounded-[20px] mb-[2rem]
+                            my-shadow">
+                            <p
+                                className="text-2xl font-semibold mb-[0.5rem]">
+                                    Let us create a stack for you!</p>
+                            <p className="w-[80%]">Enter a topic in the text box below or drag and drop a document and 
+                                we’ll generate a stack og cards for you to study.</p>
+                            <div className="flex mt-[2rem] h-[45px] max-w-[400px] w-full bg-[#f4f4f4] rounded-[10px] relative items-center ">
+                                <input 
+                                    className="w-full h-full rounded-[10px] p-[0.5rem]"
+                                    ref={aiPromptRef}></input>
+                                <button
+                                    onClick={generateAIStack}
+                                    className="text-sm h-[80%] bg-[#C594CC] pr-[0.5rem] pl-[0.5rem] rounded-[5px] my-shadow absolute right-[1rem]"> Generate </button>
+                            </div>
+                        </div>
+                    </center>
                     
-                    flex flex-col items-center
-                    max-w-[700px] w-full 
-                    bg-[#C594CC] p-[2rem] 
-                    text-center rounded-[20px] mb-[2rem]
-                    my-shadow">
-                    <p
-                        className="text-2xl font-semibold mb-[0.5rem]">
-                            Let us create a stack for you!</p>
-                    <p className="w-[80%]">Enter a topic in the text box below or drag and drop a document and 
-                        we’ll generate a stack og cards for you to study.</p>
-                    <div className="flex mt-[2rem] h-[45px] max-w-[400px] w-full bg-[#f4f4f4] rounded-[10px] relative items-center ">
-                        <input 
-                            className="w-full h-full rounded-[10px] p-[0.5rem]"
-                            ref={aiPromptRef}></input>
-                        <button
-                            onClick={generateAIStack}
-                            className="text-sm h-[80%] bg-[#C594CC] pr-[0.5rem] pl-[0.5rem] rounded-[5px] my-shadow absolute right-[1rem]"> Generate </button>
+                    <p className="text-[#272626] text-2xl font-semibold">My Folders</p>
+                    <div className="mt-[2rem] flex gap-[0.5rem]">
+                        <div 
+                            onClick={() => setShowModal(true)}
+                            className="
+                            stack
+                            h-[150px] w-[300px] 
+                            rounded-[10px] 
+                            bg-[#C2E2FA] 
+                            border-2 border-[#31A1F5] 
+                            flex justify-center items-center
+                            hover:border-3">
+                            <div
+                                onClick={() => setShowModal(true)}
+                                className="text-[#272626] text-lg font-medium">
+                                <i className="bi bi-plus mr-[1rem]"></i>
+                                Create Folder
+                            </div>
+                        </div>
+                        {folderElements}
                     </div>
-                </div>
-            </center>
-             
-            <p className="text-[#272626] text-2xl font-semibold">My Folders</p>
-            <div className="mt-[2rem] flex gap-[0.5rem]">
-                <div 
-                    onClick={() => setShowModal(true)}
-                    className="
-                    stack
-                    h-[150px] w-[300px] 
-                    rounded-[10px] 
-                    bg-[#C2E2FA] 
-                    border-2 border-[#31A1F5] 
-                    flex justify-center items-center
-                    hover:border-3">
-                    <div
-                        onClick={() => setShowModal(true)}
-                        className="text-[#272626] text-lg font-medium">
-                        <i className="bi bi-plus mr-[1rem]"></i>
-                        Create Folder
+                    
+                    <p className="text-[#272626] text-2xl font-semibold mt-[3.5rem]">My Flashcards</p>
+                    <div className="mt-[2rem] flex flex-wrap gap-2" >
+                        <div 
+                            onClick={createNewStack}
+                            className="
+                            stack
+                            h-[150px] w-[300px] 
+                            rounded-[10px] 
+                            bg-[#C2E2FA] 
+                            border-2 border-[#31A1F5] 
+                            flex justify-center items-center
+                            hover:border-3">
+                            <div
+                                
+                                className="text-[#272626] text-lg font-medium">
+                                <i className="bi bi-plus mr-[1rem]"></i>
+                                Create Stack
+                            </div>
+                        </div>
+                        {stackElements}
                     </div>
-                </div>
-                {folderElements}
-            </div>
-            
-            <p className="text-[#272626] text-2xl font-semibold mt-[3.5rem]">My Flashcards</p>
-            <div className="mt-[2rem] flex flex-wrap gap-2" >
-                <div 
-                    onClick={createNewStack}
-                    className="
-                    stack
-                    h-[150px] w-[300px] 
-                    rounded-[10px] 
-                    bg-[#C2E2FA] 
-                    border-2 border-[#31A1F5] 
-                    flex justify-center items-center
-                    hover:border-3">
-                    <div
-                        
-                        className="text-[#272626] text-lg font-medium">
-                        <i className="bi bi-plus mr-[1rem]"></i>
-                        Create Stack
-                    </div>
-                </div>
-                {stackElements}
-            </div>
 
-            
+                    
+                </div>}
         </div>
+        
     )
 }

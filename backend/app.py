@@ -178,18 +178,6 @@ async def verify_login(request : Request):
     return {'username_exists' : True, 'correct_password' : len(correct_password) > 0, 'user_id' : correct_password[0]['user_id']}
 
 
-# @app.route('/isloggedin', methods=['POST'])
-# def is_logged_in():
-#     user_id = session.get('user_id')
-#     print(f'Session: {session.get('user_id')}')
-
-#     return jsonify(user_id)
-
-# @app.route('/test-session', methods=['GET'])
-# def test_session():
-#     session['user_id'] = 123
-#     return jsonify({'message': 'session set'})
-
 # -------------------------CREATE FOLDER/ MY STACKS  ROUTES---------------------------#
 # ==============================================================================#
 
@@ -343,6 +331,33 @@ async def get_stack(request : Request):
     except Exception as e:
         print(e)
 
+@app.post('/add_multiple_cards')
+async def add_multiple_cards(request : Request):
+    try:
+        data = await request.json()
+        cards = data['cards']
+        stack_id = data['stack_id']
+        values: list = []
+
+        for card in cards:
+            row = (stack_id, card['question'], card['answer'])
+            values.append(row)
+    
+        
+        sql = f'''
+                INSERT INTO card_stack_questions
+                (stack_id, question, answer)
+                VALUES (%s, %s, %s)
+            '''
+        
+        bulkpostprocess(sql, values)
+        
+        return {'success' : True}
+    except Exception as e:
+        print(e)
+        return {'success' : False}
+    
+
 @app.post('/addcard')
 async def add_card(request : Request):
     data = await request.json()
@@ -446,6 +461,20 @@ def connect_db() -> any:
     )
 
     return conn
+
+def bulkpostprocess(sql, values):
+    try:
+        conn = connect_db()
+        cursor = conn.cursor()
+        cursor.executemany(sql, values)
+        conn.commit()
+
+        return cursor.rowcount > 0
+    except Exception as e:
+        print(e)
+    finally:
+        cursor.close()
+        conn.close()
 
 def postprocess(sql, values):
 
