@@ -49,6 +49,10 @@ export async function action({request} : ActionFunctionArgs){
 export default function MyFlashcards(){
     const navigate = useNavigate()
     const user_id = useLoaderData<typeof loader>()
+    const defaultColors = {
+        bg_color: '#C2E2FA',
+        border_color: '#31A1F5'
+    }
     const [showModal, setShowModal] = useState<boolean>(false);
     const folderTitle = useRef(null);
     const folderDesc = useRef(null);
@@ -122,9 +126,10 @@ export default function MyFlashcards(){
     const stackElements = stacks?.map((stack, index) => {
         return(
             
-            <div 
+            <div
+                style={{backgroundColor: stack.bg_color, borderColor: stack.border_color}}
                 className="
-                    h-[150px] w-[300px] bg-[#BBE0EF] flex justify-center items-center rounded-[10px] relative
+                    h-[150px] w-[300px] border-2 flex justify-center items-center rounded-[10px] relative
                 ">
                 <h1>{stack.stack_title}</h1>
                 <div className="flex gap-[2rem] absolute bottom-[1rem] right-[2rem]">
