@@ -415,6 +415,23 @@ async def edit_card(request : Request):
 
     return {'success' : result}
 
+@app.post('/edit_color')
+async def edit_color(request : Request):
+    data = await request.json()
+    bg_color = data['bg_color']
+    border_color = data['border_color']
+    stack_id = data['stack_id']
+
+    sql = f'''
+        UPDATE card_stack
+        SET  bg_color = %s, border_color = %s
+        WHERE stack_id = %s
+    '''
+
+    result = postprocess(sql, [bg_color, border_color, stack_id])
+
+    return result
+
 @app.post('/getcards')
 async def get_cards(request : Request):
     data = await request.json()
