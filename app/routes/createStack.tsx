@@ -58,9 +58,10 @@ export default function CreateStack(){
     const colorElements = colors.map((color) => {
         return(
             <div 
+                onClick={() => editColor(color.bg, color.border)}
                 style={{backgroundColor: color.bg, borderColor: color.border}}
                 className="
-                    border-2 h-[30px] w-[30px] rounded-[15px]">
+                    border-2 h-[30px] w-[30px] rounded-[15px] cursor-pointer">
 
             </div>
         )
@@ -171,6 +172,21 @@ export default function CreateStack(){
         )
     })
 
+
+    async function editColor(bgColor:string, borderColor:string){
+        const response = await fetch(`${API_URL}/edit_color`,
+            {
+                method: 'POST',
+                headers : {
+                    'Content-Type' : 'application/json'
+                },
+                body: JSON.stringify({stack_id: card_stack.stack_id, bg_color: bgColor, border_color : borderColor})
+            }
+        )
+
+        const result = await response.json()
+    }
+    
     async function addCard(){
         const response = await fetch(`${API_URL}/addcard`,
             {
