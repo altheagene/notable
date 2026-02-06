@@ -308,13 +308,16 @@ async def save_stack(request : Request):
     user_id = data['user_id']
     stack_title = data['stack_title']
     stack_description = data['stack_description']
+    bg_color = data['bg_color']
+    border_color = data['border_color']
+
     sql = f'''
         INSERT into card_stack
-        (stack_title, stack_description, user_id)
-        VALUES (%s , %s, %s)
+        (stack_title, stack_description, user_id, bg_color, border_color)
+        VALUES (%s , %s, %s, %s, %s)
     '''
 
-    result = postprocess(sql, [stack_title, stack_description, user_id])
+    result = postprocess(sql, [stack_title, stack_description, user_id, bg_color, border_color])
     
     #fetch and return the most recent addition
     sql = f'''
@@ -513,6 +516,7 @@ def postprocess(sql, values):
     try:
         conn = connect_db()
         cursor = conn.cursor()
+        print(sql)
         cursor.execute(sql, values)
         conn.commit()
 
