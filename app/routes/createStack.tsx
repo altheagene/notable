@@ -101,7 +101,11 @@ export default function CreateStack(){
                     border-2 border-[#822b8d36] 
                     rounded-[6px] pt-[1rem]  pr-[1rem]  pl-[1rem]  pb-[2.5rem]
                     flex flex-col gap-[1.5rem]">
-                <label htmlFor="">Question  {index + 1}
+                <div className=" flex justify-center items-center h-[25px] w-[25px] rounded-[5px] font-semibold  bg-[#E1ABE8]">
+                    <p>{index + 1}</p>
+                </div>
+                <label htmlFor="">Question 
+                     {/* {index + 1} */}
                     <textarea 
                         value={question.question}
                         onChange={(e) => editQuestion(e.target.value, index, question.card_id)}
