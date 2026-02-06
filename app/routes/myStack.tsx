@@ -169,7 +169,7 @@ export default function MyFlashcards(){
                 headers: {
                     'Content-Type' : 'application/json'
                 },
-                body: JSON.stringify({user_id : user_id})
+                body: JSON.stringify({user_id : user_id, stack_title: '', stack_description: ''})
             }
         )
 
@@ -195,35 +195,37 @@ export default function MyFlashcards(){
             )
 
             const result = await response.json()
-            const cards = result.response;
+            const cards = result.response.cards;
+            const stack_title = result.response.stackTitle;
+            const stack_description = result.response.stackDescription;
             console.log(cards)
 
-            // const createStack = await fetch(`${API_URL}/createstack`,
-            //     {
-            //         method : 'POST',
-            //         headers: {
-            //             'Content-Type' : 'application/json'
-            //         },
-            //         body: JSON.stringify({user_id: user_id})
-            //     }
-            // )
+            const createStack = await fetch(`${API_URL}/createstack`,
+                {
+                    method : 'POST',
+                    headers: {
+                        'Content-Type' : 'application/json'
+                    },
+                    body: JSON.stringify({user_id: user_id, stack_title: stack_title, stack_description: stack_description})
+                }
+            )
 
-            // const createStackResponse = await createStack.json();
-            // const stack_id = createStackResponse.id;
+            const createStackResponse = await createStack.json();
+            const stack_id = createStackResponse.id;
 
-            // const createCards = await fetch(`${API_URL}/add_multiple_cards`,
-            //     {
-            //         method : 'POST',
-            //         headers: {
-            //             'Content-Type' : 'application/json'
-            //         },
-            //         body: JSON.stringify({stack_id: stack_id, cards : cards})
-            //     }
-            // )
+            const createCards = await fetch(`${API_URL}/add_multiple_cards`,
+                {
+                    method : 'POST',
+                    headers: {
+                        'Content-Type' : 'application/json'
+                    },
+                    body: JSON.stringify({stack_id: stack_id, cards : cards})
+                }
+            )
 
-            // const createCardsResponse = await createCards.json()
+            const createCardsResponse = await createCards.json()
 
-            // navigate(`/main/mystack/${stack_id}`)
+            navigate(`/main/mystack/${stack_id}`)
 
             
         }

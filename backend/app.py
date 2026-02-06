@@ -188,7 +188,7 @@ async def ask_api(request : Request):
     object_prompt = (
     "STRICTLY reply in valid JSON only. "
     "The JSON must have the following top-level keys: "
-    "`stackTitle` (string), `description` (string), `cards` (array of objects). "
+    "`stackTitle` (string), `stackDescription` (string), `cards` (array of objects). "
     "Each object in `cards` must have exactly two string keys: `question` and `answer`. "
     "Do not include any text outside the JSON. "
     "Generate flashcards for the topic: "
@@ -199,7 +199,6 @@ async def ask_api(request : Request):
         messages=[{'role': 'user', 'content': object_prompt + prompt}]
     )
 
-    print(completion.choices[0].message.content)
     response = completion.choices[0].message.content
     json_str = json.loads(response)
     return {'response' : json_str}
@@ -223,6 +222,14 @@ async def delete_stack(request : Request):
     data = await request.json()
     stack_id = data['stack_id']
     user_id = data['user_id']
+
+    sql=f'''
+
+        DELETE from card_stack_questions
+        WHERE stack_id = %s
+    '''
+
+    postprocess(sql, [stack_id])
 
     sql = f'''
         DELETE FROM card_stack
@@ -299,13 +306,15 @@ async def save_stack(request : Request):
 
     data = await request.json()
     user_id = data['user_id']
+    stack_title = data['stack_title']
+    stack_description = data['stack_description']
     sql = f'''
         INSERT into card_stack
         (stack_title, stack_description, user_id)
-        VALUES ('' , '', %s)
+        VALUES (%s , %s, %s)
     '''
 
-    result = postprocess(sql, [user_id])
+    result = postprocess(sql, [stack_title, stack_description, user_id])
     
     #fetch and return the most recent addition
     sql = f'''
