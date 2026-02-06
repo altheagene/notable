@@ -174,7 +174,12 @@ export default function MyFlashcards(){
                 headers: {
                     'Content-Type' : 'application/json'
                 },
-                body: JSON.stringify({user_id : user_id, stack_title: '', stack_description: ''})
+                body: JSON.stringify({
+                    user_id : user_id, 
+                    stack_title: '', 
+                    stack_description: '', 
+                    bg_color: defaultColors.bg_color, 
+                    border_color: defaultColors.border_color})
             }
         )
 
@@ -211,7 +216,12 @@ export default function MyFlashcards(){
                     headers: {
                         'Content-Type' : 'application/json'
                     },
-                    body: JSON.stringify({user_id: user_id, stack_title: stack_title, stack_description: stack_description})
+                    body: JSON.stringify({
+                        user_id: user_id, 
+                        stack_title: stack_title, 
+                        stack_description: stack_description,
+                        bg_color: defaultColors.bg_color, 
+                        border_color: defaultColors.border_color})
                 }
             )
 
