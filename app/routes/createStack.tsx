@@ -25,7 +25,10 @@ export async function loader({params, request} : Route.LoaderArgs){
         stack_title : jsonified[0].stack_title,
         stack_description: jsonified[0].stack_description,
         stack_id: stack_id,
-        user_id: user_id
+        user_id: user_id,
+        bg_color: jsonified[0].bg_color || '#C2E2FA',
+        border_color: jsonified[0].border_color || '#31A1F5',
+        cover_image: jsonified[0].cover_image || ''
     }
 
     return myStackInfo
@@ -37,7 +40,10 @@ export default function CreateStack(){
         stack_title : string,
         stack_description : string
         stack_id : number,
-        user_id : any
+        user_id : any,
+        bg_color: string,
+        border_color: string,
+        cover_image: string
     }
 
     const colors = [
@@ -65,26 +71,32 @@ export default function CreateStack(){
 
     const tagInputRef = useRef<HTMLInputElement>(null)
 
+    const [myStack, setMyStack] = useState<Stack>(
+        {
+            stack_title : card_stack.stack_title,
+            stack_description: card_stack.stack_description,
+            stack_id: card_stack.stack_id,
+            user_id: card_stack.user_id,
+            bg_color: card_stack.bg_color,
+            border_color: card_stack.border_color,
+            cover_image: card_stack.cover_image
+        }
+    )
+
     const colorElements = colors.map((color) => {
+        const selected = !myStack.cover_image && myStack.bg_color === color.bg
         return(
             <button
                 type="button"
                 key={color.bg}
                 onClick={() => editColor(color.bg, color.border)}
                 style={{backgroundColor: color.bg}}
-                className="editor-swatch"
+                className={`editor-swatch${selected ? " editor-swatch-on" : ""}`}
                 aria-label={`Use stack color ${color.bg}`}
+                aria-pressed={selected}
             />
         )
     })
-    const [myStack, setMyStack] = useState<Stack>(
-        {
-            stack_title : card_stack.stack_title,
-            stack_description: card_stack.stack_description,
-            stack_id: card_stack.stack_id,
-            user_id: card_stack.user_id
-        }
-    )
     const card = {
         card_id : 0,
         question: '',
@@ -98,6 +110,8 @@ export default function CreateStack(){
     const [questions, setQuestions] = useState<any[]>([])
     const [selectedCard, setSelectedCard] = useState<number | null>(null)
     const [gleamCard, setGleamCard] = useState<number | null>(null)
+    const [dragIndex, setDragIndex] = useState<number | null>(null)
+    const [dropIndex, setDropIndex] = useState<number | null>(null)
     const questionCards = questions.map((question, index) => {
         return(
             <motion.article
@@ -107,18 +121,49 @@ export default function CreateStack(){
                 animate={{opacity: 1}}
                 exit={{opacity: 0}}
                 id={index.toString()}
-                className={`editor-card${selectedCard === index ? " editor-card-chosen" : ""}${gleamCard === index ? " editor-card-gleam" : ""}`}
+                className={`editor-card${selectedCard === index ? " editor-card-chosen" : ""}${gleamCard === index ? " editor-card-gleam" : ""}${dragIndex === index ? " editor-card-dragging" : ""}${dropIndex === index && dragIndex !== index ? " editor-card-drop" : ""}`}
+                onDragOver={(event) => {
+                    if (dragIndex == null) return
+                    event.preventDefault()
+                    setDropIndex(index)
+                }}
+                onDrop={(event) => {
+                    event.preventDefault()
+                    moveCard(dragIndex, index)
+                }}
+                onDragLeave={() => {
+                    setDropIndex((current) => current === index ? null : current)
+                }}
             >
                 <div className="editor-card-head">
                     <p>{index + 1}</p>
-                    <button
-                        type="button"
-                        className="editor-card-remove"
-                        aria-label={`Delete card ${index + 1}`}
-                        onClick={() => deleteCard(index, question.card_id)}
-                    >
-                        <i className="bi bi-trash" aria-hidden="true"></i>
-                    </button>
+                    <div className="editor-card-tools">
+                        <button
+                            type="button"
+                            className="editor-card-grip"
+                            aria-label={`Reorder card ${index + 1}`}
+                            draggable
+                            onDragStart={(event) => {
+                                setDragIndex(index)
+                                event.dataTransfer.effectAllowed = "move"
+                                event.dataTransfer.setData("text/plain", String(index))
+                            }}
+                            onDragEnd={() => {
+                                setDragIndex(null)
+                                setDropIndex(null)
+                            }}
+                        >
+                            <span className="editor-card-grip-bars" aria-hidden="true"></span>
+                        </button>
+                        <button
+                            type="button"
+                            className="editor-card-remove"
+                            aria-label={`Delete card ${index + 1}`}
+                            onClick={() => deleteCard(index, question.card_id)}
+                        >
+                            <i className="bi bi-trash" aria-hidden="true"></i>
+                        </button>
+                    </div>
                 </div>
                 <label className="editor-field">
                     Question
@@ -127,6 +172,33 @@ export default function CreateStack(){
                         onChange={(e) => editQuestion(e.target.value, index, question.card_id)}
                     />
                 </label>
+                <div className="editor-photo">
+                    {question.image ?
+                        <>
+                            <img src={question.image} alt="" />
+                            <button
+                                type="button"
+                                className="editor-photo-remove"
+                                onClick={() => removePhoto(index, question.card_id)}
+                            >
+                                Remove photo
+                            </button>
+                        </> :
+                        <label className="editor-photo-add">
+                            <i className="bi bi-image" aria-hidden="true"></i>
+                            Add photo
+                            <input
+                                type="file"
+                                accept="image/*"
+                                className="sr-only"
+                                onChange={(e) => {
+                                    const file = e.target.files?.[0]
+                                    if (file) addPhoto(index, question.card_id, file)
+                                    e.target.value = ""
+                                }}
+                            />
+                        </label>}
+                </div>
                 <label className="editor-field">
                     Answer
                     <textarea
@@ -158,6 +230,7 @@ export default function CreateStack(){
 
 
     async function editColor(bgColor:string, borderColor:string){
+        setMyStack((prev) => ({...prev, bg_color: bgColor, border_color: borderColor, cover_image: ''}))
         const response = await fetch(`${API_URL}/edit_color`,
             {
                 method: 'POST',
@@ -169,6 +242,28 @@ export default function CreateStack(){
         )
 
         const result = await response.json()
+    }
+
+    async function persistCover(cover_image:string){
+        setMyStack((prev) => ({...prev, cover_image}))
+        await fetch(`${API_URL}/edit_cover`,
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type' : 'application/json'
+                },
+                body: JSON.stringify({stack_id: card_stack.stack_id, cover_image})
+            }
+        )
+    }
+
+    async function addCoverPhoto(file: File){
+        try {
+            const cover_image = await compressImage(file)
+            await persistCover(cover_image)
+        } catch {
+            return
+        }
     }
     
     async function addCard(){
@@ -252,6 +347,94 @@ export default function CreateStack(){
         //     setQuestions(prev => prev.map((card, index) => index === id ? {...card, answer: value} : card))
 
     }   
+
+    function persistOrder(next: any[]){
+        fetch(`${API_URL}/reordercards`,
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type' : 'application/json'
+                },
+                body: JSON.stringify({
+                    stack_id: myStack.stack_id,
+                    card_ids: next.map((card) => card.card_id)
+                })
+            }
+        )
+    }
+
+    function moveCard(from:number | null, to:number){
+        if (from == null || from === to) {
+            setDragIndex(null)
+            setDropIndex(null)
+            return
+        }
+        setQuestions((prev) => {
+            const next = [...prev]
+            const [moved] = next.splice(from, 1)
+            next.splice(to, 0, moved)
+            persistOrder(next)
+            return next
+        })
+        setDragIndex(null)
+        setDropIndex(null)
+        setSelectedCard(to)
+    }
+
+    async function persistCardField(card_id:number, type:string, value:string){
+        await fetch(`${API_URL}/editcard`,
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type' : 'application/json'
+                },
+                body: JSON.stringify({card_id: card_id, type: type, value: value})
+            }
+        )
+    }
+
+    function compressImage(file: File){
+        return new Promise<string>((resolve, reject) => {
+            const image = new Image()
+            const url = URL.createObjectURL(file)
+            image.onload = () => {
+                const max = 900
+                const scale = Math.min(1, max / Math.max(image.width, image.height))
+                const canvas = document.createElement("canvas")
+                canvas.width = Math.max(1, Math.round(image.width * scale))
+                canvas.height = Math.max(1, Math.round(image.height * scale))
+                const context = canvas.getContext("2d")
+                if (!context) {
+                    URL.revokeObjectURL(url)
+                    reject(new Error("Could not read photo"))
+                    return
+                }
+                context.drawImage(image, 0, 0, canvas.width, canvas.height)
+                URL.revokeObjectURL(url)
+                resolve(canvas.toDataURL("image/jpeg", 0.72))
+            }
+            image.onerror = () => {
+                URL.revokeObjectURL(url)
+                reject(new Error("Could not read photo"))
+            }
+            image.src = url
+        })
+    }
+
+    async function addPhoto(index:number, card_id:number, file: File){
+        try {
+            const image = await compressImage(file)
+            setQuestions(prev => prev.map((card, cardIndex) => cardIndex === index ? {...card, image} : card))
+            await persistCardField(card_id, "image", image)
+        } catch {
+            return
+        }
+    }
+
+    async function removePhoto(index:number, card_id:number){
+        setQuestions(prev => prev.map((card, cardIndex) => cardIndex === index ? {...card, image: ""} : card))
+        await persistCardField(card_id, "image", "")
+    }
 
     async function deleteCard(id:number, card_id){
         const filtered = questions.filter((question,index) => index != id )
@@ -411,6 +594,13 @@ export default function CreateStack(){
             </aside>
             <div className="editor-main">
                 <header className="editor-head">
+                    <div
+                        className="editor-cover"
+                        style={myStack.cover_image
+                            ? {backgroundImage: `url(${myStack.cover_image})`}
+                            : {backgroundColor: myStack.bg_color}}
+                        aria-hidden="true"
+                    ></div>
                     <div>
                         <h1>{myStack.stack_title === '' ? 'Create a stack' : 'Edit stack'}</h1>
                         <p>Saved · {questions.length} {questions.length === 1 ? 'card' : 'cards'}</p>
@@ -446,8 +636,24 @@ export default function CreateStack(){
                         />
                         {tagsElements}
                     </div>
-                    <div className="editor-swatches" aria-label="Cover color">
+                    <div className="editor-swatches" aria-label="Cover">
                         {colorElements}
+                        <label className={`editor-cover-upload${myStack.cover_image ? " editor-swatch-on" : ""}`}>
+                            {myStack.cover_image
+                                ? <img src={myStack.cover_image} alt="" />
+                                : <i className="bi bi-image" aria-hidden="true"></i>}
+                            <span className="sr-only">Upload cover photo</span>
+                            <input
+                                type="file"
+                                accept="image/*"
+                                className="sr-only"
+                                onChange={(e) => {
+                                    const file = e.target.files?.[0]
+                                    if (file) addCoverPhoto(file)
+                                    e.target.value = ""
+                                }}
+                            />
+                        </label>
                     </div>
                 </div>
 

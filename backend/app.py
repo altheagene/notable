@@ -209,8 +209,11 @@ async def get_stacks(request : Request):
     user_id = data['user_id']
 
     sql = f'''
-        SELECT * FROM card_stack
+        SELECT c.*, COUNT(cq.card_id) as length
+        FROM card_stack c
+        JOIN card_stack_questions cq on cq.stack_id = c.stack_id
         WHERE user_id = %s
+        GROUP BY c.stack_id
     '''
 
     result = getprocess(sql, [user_id])
@@ -339,7 +342,7 @@ async def get_stack(request : Request):
         user_id = data['user_id']
 
         sql = f'''
-            SELECT stack_title, stack_description FROM card_stack
+            SELECT stack_title, stack_description, bg_color, border_color, cover_image FROM card_stack
             WHERE stack_id = %s AND user_id  = %s
         '''
 
@@ -382,13 +385,23 @@ async def add_card(request : Request):
     stack_id = data['stack_id']
     user_id = data['user_id']
 
+    next_row = getprocess(
+        '''
+        SELECT COALESCE(MAX(card_order), -1) + 1 AS next_order
+        FROM card_stack_questions
+        WHERE stack_id = %s
+        ''',
+        [stack_id]
+    )
+    next_order = next_row[0]['next_order'] if next_row else 0
+
     sql = f'''
         INSERT INTO card_stack_questions
-        (stack_id)
-        VALUES (%s)
+        (stack_id, card_order)
+        VALUES (%s, %s)
     '''
 
-    result = postprocess(sql, [stack_id])
+    result = postprocess(sql, [stack_id, next_order])
 
     sql = f'''
         SELECT card_id FROM card_stack_questions
@@ -403,14 +416,17 @@ async def add_card(request : Request):
 
 @app.post('/editcard')
 async def edit_card(request : Request):
-    data = request.json()
+    data = await request.json()
     card_id = data['card_id']
-    type = data['type']
+    field = data['type']
     value = data['value']
+
+    if field not in ('question', 'answer', 'image'):
+        return {'success': False}
 
     sql = f'''
         UPDATE card_stack_questions
-        SET `{type}` = %s 
+        SET `{field}` = %s 
         WHERE card_id = %s
     '''
 
@@ -427,13 +443,30 @@ async def edit_color(request : Request):
 
     sql = f'''
         UPDATE card_stack
-        SET  bg_color = %s, border_color = %s
+        SET  bg_color = %s, border_color = %s, cover_image = NULL
         WHERE stack_id = %s
     '''
 
     result = postprocess(sql, [bg_color, border_color, stack_id])
 
     return result
+
+@app.post('/edit_cover')
+async def edit_cover(request : Request):
+    data = await request.json()
+    stack_id = data['stack_id']
+    cover_image = data['cover_image']
+
+    result = postprocess(
+        '''
+        UPDATE card_stack
+        SET cover_image = %s
+        WHERE stack_id = %s
+        ''',
+        [cover_image, stack_id]
+    )
+
+    return {'success': result}
 
 @app.post('/getcards')
 async def get_cards(request : Request):
@@ -443,11 +476,30 @@ async def get_cards(request : Request):
     sql = f'''
         SELECT * FROM card_stack_questions
         WHERE stack_id = %s
+        ORDER BY COALESCE(card_order, card_id), card_id
     '''
 
     result = getprocess(sql, [stack_id])
 
     return result
+
+@app.post('/reordercards')
+async def reorder_cards(request : Request):
+    data = await request.json()
+    stack_id = data['stack_id']
+    card_ids = data['card_ids']
+
+    for index, card_id in enumerate(card_ids):
+        postprocess(
+            '''
+            UPDATE card_stack_questions
+            SET card_order = %s
+            WHERE card_id = %s AND stack_id = %s
+            ''',
+            [index, card_id, stack_id]
+        )
+
+    return {'success': True}
 
 @app.post('/deletecard')
 async def delete_card(request : Request):
@@ -481,6 +533,7 @@ async def study_stack(request : Request):
     sql = f'''
         SELECT * FROM card_stack_questions
         WHERE stack_id = %s
+        ORDER BY COALESCE(card_order, card_id), card_id
     '''
 
     cards = getprocess(sql, [stack_id])
@@ -543,6 +596,48 @@ def getprocess(sql, values):
     finally:
         cursor.close()
         conn.close()
+
+def ensure_card_image_column():
+    existing = getprocess(
+        '''
+        SELECT COLUMN_NAME FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = %s AND TABLE_NAME = 'card_stack_questions' AND COLUMN_NAME = 'image'
+        ''',
+        [database]
+    )
+    if existing:
+        return
+    postprocess('ALTER TABLE card_stack_questions ADD COLUMN image LONGTEXT NULL', [])
+
+ensure_card_image_column()
+
+def ensure_card_order_column():
+    existing = getprocess(
+        '''
+        SELECT COLUMN_NAME FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = %s AND TABLE_NAME = 'card_stack_questions' AND COLUMN_NAME = 'card_order'
+        ''',
+        [database]
+    )
+    if existing:
+        return
+    postprocess('ALTER TABLE card_stack_questions ADD COLUMN card_order INT NULL', [])
+
+ensure_card_order_column()
+
+def ensure_cover_image_column():
+    existing = getprocess(
+        '''
+        SELECT COLUMN_NAME FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = %s AND TABLE_NAME = 'card_stack' AND COLUMN_NAME = 'cover_image'
+        ''',
+        [database]
+    )
+    if existing:
+        return
+    postprocess('ALTER TABLE card_stack ADD COLUMN cover_image LONGTEXT NULL', [])
+
+ensure_cover_image_column()
 
 if __name__ == '__main__' :
    import uvicorn

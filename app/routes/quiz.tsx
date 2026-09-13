@@ -173,10 +173,7 @@ export default function QuizPage(){
         <div
             className="
                 bg-[#522258] min-h-screen p-[1rem] w-full overflow-x-hidden">
-            <p  
-                className="text-xl sm:text-2xl font-semibold text-[#f4f4f4] text-center lg:text-left lg:ml-[5rem] lg:pt-[3rem]">
-                {stack.stack_details.stack_title}
-            </p>
+            
             {completed && track ? 
             <TrackResultsModal cards={cards} answers={answerTrack} correct={correct} incorrect={incorrect}/> : completed && !track ?
             <NonTrackResults total={cards.length} />:
@@ -185,9 +182,12 @@ export default function QuizPage(){
                 flex flex-col justify-center items-center 
                 no-scrollbar snap-x snap-mandatory relative gap-[1rem]"
                 ref={cardsContainer}>
-
+                <p  
+                    className="text-xl sm:text-2xl font-semibold text-[#f4f4f4] max-w-[800px] w-full mb-[2rem]">
+                    {stack.stack_details.stack_title}
+                </p>
                 {track &&
-                    <div className='flex justify-between max-w-[700px] w-full font-semibold text-white'>
+                    <div className='flex justify-between max-w-[800px] w-full font-semibold text-white'>
                         <div className='text-[white] flex gap-[0.5rem] items-center'>
                             <div className=' flex items-center justify-center bg-[#D65555]   w-[40px] h-[40px] rounded-[20px]'>{incorrect}</div>
                             <p className=''>Incorrect</p>
@@ -198,22 +198,35 @@ export default function QuizPage(){
                         </div>
                     </div>
                 }    
-                <div className=' max-w-[700px] w-full min-h-[500px] sm:min-h-[400px] relative'>
+                <div className=' max-w-[800px] w-full min-h-[500px] sm:min-h-[400px] relative'>
                     <AnimatePresence mode='sync' >
                         { track ? 
                             <motion.div
-                            key={myCard.card_id}
-                            
-                            initial={{opacity:1}}
-                            animate={{ opacity: 1}}
-                            exit={{x : rightAns , opacity: 0}}
-                            transition={{duration : 0.3, ease: 'easeIn'}}
-                            className="
-                                w-full 
-                                flex items-center justify-center 
-                                snap-center 
-                                perspective-1000   
-                                bg-[#522258] absolute">
+                                key={myCard.card_id}
+
+                                initial={{ opacity: 0, scale: 0.95, y: 30 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                exit={{
+                                    x: rightAns,
+                                    opacity: 0,
+                                    rotate: rightAns > 0 ? 6 : -6,
+                                    scale: 0.9
+                                }}
+
+                                transition={{
+                                    type: "spring",
+                                    stiffness: 220,
+                                    damping: 20
+                                }}
+
+                                className="
+                                w-full
+                                flex items-center justify-center
+                                snap-center
+                                perspective-1000
+                                bg-[#522258]
+                                absolute"
+                            >
                             <motion.div
                                 animate={{rotateY: myCard.isFlipped ? 180 : 0}}
                                 transition={{ duration: 0.3, ease: 'easeOut' }}
@@ -227,7 +240,10 @@ export default function QuizPage(){
                                     backface-hidden cursor-pointer absolute 
                                     min-w-full front min-h-full 
                                     bg-[#f4f4f4] border-[1rem]  border-[#822b8d80] rounded-[10px]">
-                                    {myCard.question}
+                                    <div className="flex flex-col items-center gap-[1rem]">
+                                        {myCard.image && <img src={myCard.image} alt="" className="max-h-[180px] w-auto rounded-[8px] object-contain" />}
+                                        {myCard.question}
+                                    </div>
                                 </motion.div>
                                 <motion.div
                                     onClick={() => flipIt(myCard.card_id)}
@@ -258,7 +274,12 @@ export default function QuizPage(){
                                 transition={{duration: 0.3}}
                                 >
                                 <motion.div 
-                                    className='card front backface-hidden'>{myCard.question}</motion.div>
+                                    className='card front backface-hidden'>
+                                    <div className="flex flex-col items-center gap-[1rem]">
+                                        {myCard.image && <img src={myCard.image} alt="" className="max-h-[180px] w-auto rounded-[8px] object-contain" />}
+                                        {myCard.question}
+                                    </div>
+                                </motion.div>
                                 <motion.div 
                                     className='card back backface-hidden rotate-y-180'>{myCard.answer}</motion.div>
                             </motion.div>

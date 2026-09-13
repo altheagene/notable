@@ -158,48 +158,53 @@ export default function MyFlashcards(){
         const originalIndex = stacks?.findIndex((item) => item.stack_id === stack.stack_id) ?? index
         return(
             <article key={stack.stack_id} className="library-cover library-cover-stack">
-                <div
-                    className="library-cover-plate"
-                    style={{backgroundColor: stack.bg_color || "#c5e4f8"}}
-                ></div>
-                <div className="library-cover-body">
-                    <div className="library-cover-head">
+                <Link
+                    className="library-cover-hit"
+                    to={`/main/quiz/${stack.stack_id}`}
+                    aria-label={`Study ${stack.stack_title || "Untitled stack"}`}
+                >
+                    <div
+                        className="library-cover-plate"
+                        style={stack.cover_image
+                            ? {backgroundImage: `url(${stack.cover_image})`}
+                            : {backgroundColor: stack.bg_color || "#c5e4f8"}}
+                    ></div>
+                    <div className="library-cover-body">
                         <h3>{stack.stack_title || "Untitled stack"}</h3>
-                        <div className="library-cover-menu">
+                        <p>{stack.length} cards</p>
+                    </div>
+                </Link>
+                <div className="library-cover-menu">
+                    <button
+                        type="button"
+                        className="library-cover-kebab"
+                        aria-label={`More actions for ${stack.stack_title || "Untitled stack"}`}
+                        aria-expanded={openMenuId === stack.stack_id}
+                        aria-haspopup="menu"
+                        onClick={() => setOpenMenuId((current) => current === stack.stack_id ? null : stack.stack_id)}
+                    >
+                        <i className="bi bi-three-dots-vertical" aria-hidden="true"></i>
+                    </button>
+                    {openMenuId === stack.stack_id &&
+                        <div className="library-cover-menu-list" role="menu">
+                            <Link
+                                role="menuitem"
+                                to={`/main/mystack/${stack.stack_id}`}
+                                onClick={() => setOpenMenuId(null)}
+                            >
+                                Edit
+                            </Link>
                             <button
                                 type="button"
-                                className="library-cover-kebab"
-                                aria-label={`More actions for ${stack.stack_title || "Untitled stack"}`}
-                                aria-expanded={openMenuId === stack.stack_id}
-                                aria-haspopup="menu"
-                                onClick={() => setOpenMenuId((current) => current === stack.stack_id ? null : stack.stack_id)}
+                                role="menuitem"
+                                onClick={() => {
+                                    setOpenMenuId(null)
+                                    deleteStack(stack.stack_id, originalIndex)
+                                }}
                             >
-                                <i className="bi bi-three-dots-vertical" aria-hidden="true"></i>
+                                Delete
                             </button>
-                            {openMenuId === stack.stack_id &&
-                                <div className="library-cover-menu-list" role="menu">
-                                    <Link
-                                        role="menuitem"
-                                        to={`/main/mystack/${stack.stack_id}`}
-                                        onClick={() => setOpenMenuId(null)}
-                                    >
-                                        Edit
-                                    </Link>
-                                    <button
-                                        type="button"
-                                        role="menuitem"
-                                        onClick={() => {
-                                            setOpenMenuId(null)
-                                            deleteStack(stack.stack_id, originalIndex)
-                                        }}
-                                    >
-                                        Delete
-                                    </button>
-                                </div>}
-                        </div>
-                    </div>
-                    <p>{stack.length} cards</p>
-                    <Link className="library-study" to={`/main/quiz/${stack.stack_id}`}>Study</Link>
+                        </div>}
                 </div>
             </article>
         )
