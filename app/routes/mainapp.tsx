@@ -8,8 +8,8 @@ import {motion, AnimatePresence} from 'framer-motion'
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "New React Router App" },
-    { name: "description", content: "Welcome to React Router!" },
+    { title: "Notable" },
+    { name: "description", content: "A better way to study with flashcards." },
   ];
 }
 
@@ -39,63 +39,55 @@ export async function action({request} : Route.ActionFunctionArgs){
 export default function MainApp(){
 
     const [showNav, setShowNav] = useState(false)
+    const [searchQuery, setSearchQuery] = useState("")
 
     return(
-        <div className="bg-[#f4f4f4] h-full overflow-x-auto">
+        <div className="library-shell">
             {showNav &&
             <>
-                <div 
-                    className="
-                        w-[250px] h-dvh
-                        absolute
-                        bg-[#f4f4f4] z-500">
-                    <i className="bi bi-x text-4xl pr-[0.5rem] cursor-pointer" onClick={() => setShowNav(false)}></i>
-                    <ul className="font-medium p-[1rem] pl-[0.5rem] flex flex-col gap-[1rem]">
-                        <li>My Stack</li>
-                        <li>Create Stack</li>
-                    </ul>
+                <div className="library-drawer">
+                    <button type="button" className="library-drawer-close" onClick={() => setShowNav(false)} aria-label="Close menu">
+                        <i className="bi bi-x-lg"></i>
+                    </button>
+                    <Link to="mystack" onClick={() => setShowNav(false)}>My Flashcards</Link>
+                    <Link to="mystack" onClick={() => setShowNav(false)}>Create Stack</Link>
                 </div>
-                <div className="bg-[#27262641] w-dvw h-dvh absolute z-2"></div>
+                <div className="library-drawer-mask" onClick={() => setShowNav(false)}></div>
             </>}
-            <nav className="h-[55px]  bg-[#522258] flex items-center justify-between pr-[2rem]">
-                <div className="flex items-center h-[90%]">
-                    <i 
-                        className="md:hidden lg:hidden bi bi-list text-2xl text-[#f4f4f4] cursor-pointer text-[#fff281] pl-[0.5rem]"
-                        onClick={() => setShowNav(prev => !prev)}></i>
-                    <img src={notable_logo} alt="" className="h-[75%] lg:h-[90%] w-auto hover:cursor-pointer" />
+            <nav className="library-nav">
+                <div className="library-nav-brand">
+                    <button
+                        type="button"
+                        className="library-nav-menu"
+                        onClick={() => setShowNav(prev => !prev)}
+                        aria-label="Open menu"
+                    >
+                        <i className="bi bi-list"></i>
+                    </button>
+                    <Link to="mystack" className="library-nav-logo">
+                        <img src={notable_logo} alt="Notable" />
+                    </Link>
                 </div>
-                <input 
-                    type="text" 
-                    className="
-                        text-[#f4f4f4]
-                        h-[35px] w-[60%] lg:w-[50%] 
-                        ml-[2rem] mr-[2rem] 
-                        bg-[#6A2C72] 
-                        border-[#fff2817b] border rounded-[5px]
-                        p-[0.5rem]
-                        focus:outline-none focus:border-[#fff2817b] focus:border-2"></input>
-                <Link 
-                    to='mystack'
-                    className="
-                        text-white
-                        hidden  lg:block">
-                    My Flashcards   
-                </Link>
-                <Link 
-                    to='createstack' 
-                    className="
-                        text-[#fff281]
-                        hidden lg:block">
-                    <i className="bi bi-plus mr-[0.5rem]"></i>Create Stack
-                </Link>
-                <Form name="logout" method="POST" className="text-white">
-                    <button 
-                        type="submit"
-                        className="text-white">Logout</button>
-                </Form>
+                <label className="library-search">
+                    <i className="bi bi-search" aria-hidden="true"></i>
+                    <span className="sr-only">Search stacks</span>
+                    <input
+                        type="search"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Search stacks"
+                    />
+                </label>
+                <div className="library-nav-links">
+                    <Link to="mystack" className="library-nav-link">My Flashcards</Link>
+                    <Link to="mystack" className="library-nav-link">Create Stack</Link>
+                    <Form name="logout" method="POST">
+                        <button type="submit" className="library-nav-link library-nav-link-ghost">Logout</button>
+                    </Form>
+                </div>
             </nav>
-            <div className="h-[calc(100dvh-55px)] bg-[#f4f4f4]">
-                <Outlet></Outlet>
+            <div className="library-outlet">
+                <Outlet context={{searchQuery}} />
             </div>
         </div>
     )
